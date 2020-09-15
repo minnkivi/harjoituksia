@@ -1,32 +1,35 @@
 # Ohjelma tarkistaa, onko sille annettu sosiaaliturvatunnus validi suomalainen sosiaaliturvatunnus.
 # Validi tunnus on määritelty esim. Wikipediassa.
+# Ohjelma tunnistaa oikeiksi vain väestörekisteriin kirjattavat viralliset sosiaaliturvatunnukset, ei
+# tilapäisiä tunnuksia.
 
 import re
 
 def on_validi_muoto(sotu: str) -> bool:
-    """Tarkistaa, että annettu sosiaaliturvatunnus on edes oikean muotoinen, eli 6 digitiä (henkilön syntymäaika muodossa ppkkvv), välimerkkinä +,- tai A 
-       ja sen jälkeen 4 digitiä, esim. 110589-1234 (tämä ei välttämättä ole validi tunnus).
+    """Tarkistaa, että annettu sosiaaliturvatunnus on oikean muotoinen, eli 6 digitiä (henkilön syntymäaika muodossa ppkkvv), 
+       välimerkkinä +,- tai A ja sen jälkeen 3 digitiä ja yksi tarkistusmerkki (numero tai kirjain), esim. 031187-846J.
 
     Args:
         sotu (str): tarkistettava sosiaaliturvatunnus
 
     Returns:
-        bool: True, jos annettu sosiaaliturvus on muodollisesti oikein
+        bool: True, jos annettu sosiaaliturvatunnus on muodoltaan oikeanlainen
     """
     return bool(re.match("^[0-9]{6}['+'|'\-'|'A'][0-8][0-9][0-9][A-Y0-9]", sotu))
 
 
 def jaa_osiin(sotu: str) -> list:
-    """Jakaa annetun sosiaaliturvatunnuksen osiin: syntymäajan päivään, kuukauteen ja vuoteen sekä tunnuksen loppuosaan. Sosiaaliturvatunnuksen kahden 
-       digitin pituiseen vuosiosaan lisätään vuosisadat, jotta saadaan täydellinen syntymävuosi (päivän oikeellisuuden tarkistuksessa on tiedettävä, 
-       onko kyseessä karkausvuosi). Vuosisata määräytyy välimerkin mukaan seuraavasti: '+' 1800-luku, '-' 1900-luku, 'A' 2000-luku.
+    """Jakaa annetun sosiaaliturvatunnuksen osiin: syntymäajan päivään, kuukauteen ja vuoteen sekä tunnuksen loppuosaan. 
+       Sosiaaliturvatunnuksen kahden digitin pituiseen vuosiosaan lisätään vuosisadat, jotta saadaan täydellinen syntymävuosi
+       (päivän oikeellisuuden tarkistuksessa on tiedettävä, onko kyseessä karkausvuosi). Vuosisata määräytyy välimerkin 
+       mukaan seuraavasti: '+' 1800-luku, '-' 1900-luku, 'A' 2000-luku.
 
     Args:
         sotu (str): sosiaaliturvatunnus, jonka validius halutaan tarkistaa
 
     Returns:
-        list: lista, jonka alkiot ovat sosiaaliturvatunnuksen syntymäajan päivä, kuukausi ja vuosi sekä tunnuksen loppuosa
-        kokonaislukuina.
+        list: lista, jonka alkiot ovat sosiaaliturvatunnuksen syntymäajan päivä, kuukausi ja täydellinen vuosi kokonaislukuina
+        sekä tunnuksen loppuosa merkkijonona.
     """
     osat = []
     osat.append(int(sotu[:2]))
@@ -45,8 +48,8 @@ def jaa_osiin(sotu: str) -> list:
 
 
 def on_karkausvuosi(vuosi: int) -> bool:
-    """Tarkistaa, onko vuosi karkausvuosi. Vuosi on karkausvuosi, jos se on jaollinen 4:llä, paitsi täydet vuosisadat (eli sadalla jaolliset vuodet) 
-       ovat karkausvuosia vain, jos ne ovat jaollisia myös 400:llä. 
+    """Tarkistaa, onko vuosi karkausvuosi. Vuosi on karkausvuosi, jos se on jaollinen 4:llä, paitsi täydet vuosisadat 
+       (eli sadalla jaolliset vuodet) ovat karkausvuosia vain, jos ne ovat jaollisia myös 400:llä. 
 
     Args:
         vuosi (int): vuosi, josta halutaan selvittää, onko se karkausvuosi
@@ -73,6 +76,7 @@ def on_ok_paiva(paiva: int, kk: int, vuosi: int) -> bool:
         paiva (int): syntymäajan päivä
         kk (int): syntymäajan kuukausi
         vuosi (int): syntymäajan vuosi
+
     Returns:
         bool: True, jos annetun syntymäajan päivä on validi
     """
@@ -90,7 +94,7 @@ def on_ok_paiva(paiva: int, kk: int, vuosi: int) -> bool:
 
 
 def on_ok_kuukausi(kk: int) -> bool:
-    """Tarkistaa, että sosiaaliturvatunnuksessa annettu syntymäajan kuukausi on validi (korkeintaan 12).
+    """Tarkistaa, että sosiaaliturvatunnuksessa annettu syntymäajan kuukausi on validi (vähintään 1, korkeintaan 12).
 
     Args:
         kk (int): takistettava kuukausi
@@ -98,11 +102,15 @@ def on_ok_kuukausi(kk: int) -> bool:
     Returns:
         bool: True, jos kuukausi on validi
     """
-    return kk < 13
+    return 0 < kk < 13
 
 
 def on_ok_loppuosa(sotu: str) -> bool:
-    """Tarkistaa, että sosiaaliturvatunnuksen loppuosa on validi (tarkistusnumero on oikein)
+    """Tarkistaa, että sosiaaliturvatunnuksen loppuosa on validi (tarkistusnumero on oikein). Tarkistetaan myös, että
+       loppuosan kolme ensimmäistä merkkiä eivät ole 000 tai 001, joita ei virallisissa tunnuksissa käytetä, vaikka
+       menevätkin muodon oikeellisuuden tarkistuksesta läpi.
+       Validin sosiaaliturvatunnuksen viimeinen merkki vastaa jakojäännöstä, joka saadaan jakamalla syntymäajan ja 
+       loppuosan kolmen ensimmäisen numeron muodostama 9-numeroinen luku (ppkkvvnnn) 31:llä.
 
     Args:
         sotu (str): sosiaaliturvatunnus, jonka validius halutaan tarkistaa
@@ -124,6 +132,7 @@ def on_ok_loppuosa(sotu: str) -> bool:
         else:
             return False
 
+
 def main():
     
     sotu = input("Anna tarkistettava sosiaaliturvatunnus: ")
@@ -138,15 +147,15 @@ def main():
     loppuosa = jaa_osiin(sotu)[3]
 
     if not on_ok_kuukausi(syntyma_kuukausi):
-        print("Antamasi sosiaaliturvatunnus ei ole oikea1.")
+        print("Antamasi sosiaaliturvatunnus ei ole oikea.")
         exit()
 
     if not on_ok_paiva(syntyma_paiva, syntyma_kuukausi, syntyma_vuosi):
-        print("Antamasi sosiaaliturvatunnus ei ole oikea2.")
+        print("Antamasi sosiaaliturvatunnus ei ole oikea.")
         exit()
     
     if not on_ok_loppuosa(sotu):
-        print("Antamasi sosiaaliturvatunnus ei ole oikea1.")
+        print("Antamasi sosiaaliturvatunnus ei ole oikea.")
         exit()        
     
     print("Antamasi sosiaaliturvatunnus on validi suomalainen sosiaaliturvatunnus.")
