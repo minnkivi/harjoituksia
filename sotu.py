@@ -81,13 +81,13 @@ def on_ok_paiva(paiva: int, kk: int, vuosi: int) -> bool:
         bool: True, jos annetun syntymäajan päivä on validi
     """
     kk_ja_paivat = {
-        1:31, 2:28, 3:31, 4:30, 5:31, 6:30, 7:31, 8:31, 9:30, 10:31, 11:30, 12:30
+        1:31, 2:28, 3:31, 4:30, 5:31, 6:30, 7:31, 8:31, 9:30, 10:31, 11:30, 12:31
     }
 
     if on_karkausvuosi(vuosi):
         kk_ja_paivat[2] = 29
 
-    if paiva > kk_ja_paivat[kk]:
+    if paiva < 1 or paiva > kk_ja_paivat[kk]:
         return False
     else:
         return True
